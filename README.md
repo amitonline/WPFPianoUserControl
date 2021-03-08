@@ -8,3 +8,4 @@ This source code is a companion to the Youtube Playlist which explains how to cr
 https://www.youtube.com/playlist?list=PLLAs2gIR3bXOfS2JkOKh9U3ahCYp3nDoo
 
 
+![Screenshot](https://github.com/amitonline/WPFPianoUserControl/blob/master/mq2.jpg)
