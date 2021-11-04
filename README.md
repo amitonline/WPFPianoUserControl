@@ -11,6 +11,9 @@ The control only supports sending notes as MIDI out commands, so the connected k
 The code has now been revamped to handle multiple octaves. The UI creation and MIDI node handling is now dynamic. The control can show up to 7 octaves with C4 being the middle and default octave.
 PianoUserControl project is the actual usercontrol. PianoTest project is the demo application which tests the usercontrol. TestDynamic project is a scratchpad application used for testing ideas before putting them into the control. 
 
+![Single Octave](https://github.com/amitonline/WPFPianoUserControl/blob/master/key1.png)
+
+![Multiple Octaves](https://github.com/amitonline/WPFPianoUserControl/blob/master/key2.png)
 
 **FIRST WORKING COPY**
 This source code is a companion to the Youtube Playlist which explains how to create this User Control.
