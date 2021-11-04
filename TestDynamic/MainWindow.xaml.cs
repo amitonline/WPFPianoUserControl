@@ -14,13 +14,14 @@ using System.Windows.Navigation;
 using System.Windows.Shapes;
 using NAudio.Midi;
 
-namespace PianoUserControl
+namespace TestDynamic
 {
     /// <summary>
-    /// Interaction logic for UserControl1.xaml
+    /// Interaction logic for MainWindow.xaml
     /// </summary>
-    public partial class UserControl1 : UserControl
+    public partial class MainWindow : Window
     {
+
         MidiIn midiIn = null;
         int midiInIndex = -1;
         int midiOutIndex = -1;
@@ -31,7 +32,6 @@ namespace PianoUserControl
         private static int MAX_OCTAVE = 7;
 
 
-        //default freqs assuming this is the 4th octave
         private int CNOTE = 60;
         private int CSHARPNOTE = 61;
         private int DNOTE = 62;
@@ -66,7 +66,6 @@ namespace PianoUserControl
         private const string ASHARPKEY2 = "asharp2";
 
 
-        //black keys are drawn as a percentage of the white key width and length
         private const double BLACK_KEY_WIDTH_PERCENT = 30;
         private const double BLACK_KEY_HEIGHT_PERCENT = 60;
 
@@ -83,17 +82,13 @@ namespace PianoUserControl
 
         private bool mLoaded = false;
 
-        public UserControl1()
+        public MainWindow()
         {
             InitializeComponent();
-           
         }
 
         #region audio handling *************************************************************************************
-        
-        /// <summary>
-        /// Set default note frequencies
-        /// </summary>
+
         private void setNotes()
         {
             int C4 = 60;
@@ -110,7 +105,7 @@ namespace PianoUserControl
             int B4 = 71;
 
             int change = 0;
-
+          
 
             CNOTE = C4 + change;
             CSHARPNOTE = CSHARP4 + change;
@@ -127,15 +122,9 @@ namespace PianoUserControl
 
         }
 
-        /// <summary>
-        /// Change the note frequency as per the current octave
-        /// </summary>
-        /// <param name="note"></param>
-        /// <param name="octave"></param>
-        /// <returns></returns>
         private int setNoteAsPerOctave(int note, int octave)
         {
-
+            
             int change = 0;
             if (octave == 3)
                 change = -12;
@@ -151,14 +140,9 @@ namespace PianoUserControl
                 change = 36;
 
             return note + change;
-
+          
 
         }
-
-        /// <summary>
-        /// set current octave. This is used to set a single octave (start  = stop)
-        /// </summary>
-        /// <param name="o"></param>
         public void setOctave(int o)
         {
             if (o < MIN_OCTAVE)
@@ -173,14 +157,9 @@ namespace PianoUserControl
             setNotes();
         }
 
-        /// <summary>
-        /// Set multiple octaves where start < stop
-        /// </summary>
-        /// <param name="start"></param>
-        /// <param name="stop"></param>
         public void setMultipleOctaves(int start, int stop)
         {
-
+            
             if (start < MIN_OCTAVE)
                 start = MIN_OCTAVE;
             if (start > MAX_OCTAVE)
@@ -203,14 +182,11 @@ namespace PianoUserControl
             mNumOctaves = stop - start + 1;
             initUI();
             setNotes();
-
+           
         }
 
         public int getOctave() { return mOctave; }
 
-        /// <summary>
-        /// Get list of MIDI in and out devices
-        /// </summary>
         void listDevices()
         {
             Console.WriteLine("Midi in devices");
@@ -229,10 +205,6 @@ namespace PianoUserControl
 
         }
 
-        /// <summary>
-        /// Send midi command to play a note frequency for a fixed duration
-        /// </summary>
-        /// <param name="note"></param>
         void playNote(int note)
         {
             if (midiOutIndex == -1)
@@ -243,11 +215,6 @@ namespace PianoUserControl
                 Console.WriteLine("play note" + note);
             }
         }
-
-        /// <summary>
-        /// Send midi command to stop playing a note 
-        /// </summary>
-        /// <param name="note"></param>
         void stopNote(int note)
         {
             if (midiOutIndex == -1)
@@ -258,11 +225,6 @@ namespace PianoUserControl
             }
         }
 
-        /// <summary>
-        /// Map key names to key sounds
-        /// </summary>
-        /// <param name="name"></param>
-        /// <returns></returns>
         int noteNameToSound(string name)
         {
             int retVal = 0;
@@ -299,22 +261,14 @@ namespace PianoUserControl
         #endregion ****************************************************************************************
 
         #region UI handling *************************************************************************************
-
-        /// <summary>
-        /// Init the keyboard rects and the Grid constraints
-        /// </summary>
         private void initUI()
         {
-            mLoaded = false;
             grd.Width = this.ActualWidth - 30;
-            grd.Height = this.ActualHeight - 40;
+            grd.Height = this.ActualHeight-40;
             grd.HorizontalAlignment = HorizontalAlignment.Left;
             grd.VerticalAlignment = VerticalAlignment.Top;
             grd.ShowGridLines = false;
             grd.Background = new SolidColorBrush(Colors.White);
-
-            grd.RowDefinitions.Clear();
-            grd.ColumnDefinitions.Clear();
 
             for (int i = 1; i <= mNumOctaves; i++)
             {
@@ -329,13 +283,13 @@ namespace PianoUserControl
             row.Height = new GridLength(1, GridUnitType.Star);
             grd.RowDefinitions.Add(row);
 
-            mBlackHeight = this.Height * (BLACK_KEY_HEIGHT_PERCENT / 100);
+            mBlackHeight = this.Height * (BLACK_KEY_HEIGHT_PERCENT/100);
             mBlackWidth = 100.0 * (BLACK_KEY_WIDTH_PERCENT / 100); // this width will actually be the percentage of a white key width
                                                                    // this gets set in resizeUI()
 
             int gridCol = 0;
             // white keys interspersed with black keys
-            for (int octaves = mStartOctave; octaves <= mStopOctave; octaves++)
+            for (int octaves  = mStartOctave; octaves <= mStopOctave; octaves++)
             {
                 for (int i = 0; i <= mColumns; i++)
                 {
@@ -351,11 +305,6 @@ namespace PianoUserControl
                     rect.MouseLeftButtonUp += rect_MouseLeftButtonUp;
                     rect.MouseEnter += rect_MouseEnter;
                     rect.MouseLeave += rect_MouseLeave;
-                    if (octaves == mStartOctave && i == 0)
-                    {
-                        rect.SizeChanged += rect_SizeChanged;
-                    }
-
                     rect.Tag = octaves;
                     // set key name
                     switch (i)
@@ -649,15 +598,9 @@ namespace PianoUserControl
             } //    for (int x = 0; x < mNumOctaves; x++)
 
             mLoaded = true;
-
+          
         }
 
-        
-        /// <summary>
-        /// Check if a rectangle is Black key
-        /// </summary>
-        /// <param name="r"></param>
-        /// <returns></returns>
         private bool isBlackRect(Rectangle r)
         {
             bool retVal = false;
@@ -671,29 +614,32 @@ namespace PianoUserControl
             return retVal;
         }
 
-        /// <summary>
-        /// get name of black rectangle(key) by name and octave
-        /// </summary>
-        /// <param name="name"></param>
-        /// <param name="octave"></param>
-        /// <returns></returns>
         private Rectangle getBlackKeyByName(string name, int octave)
         {
-            foreach (Rectangle r1 in mBlackRects)
+            foreach(Rectangle r1 in mBlackRects)
             {
-                if (r1.Name == name && (int)r1.Tag == octave)
+                if (r1.Name == name && (int) r1.Tag == octave)
                 {
                     return r1;
                 }
             }
             return null;
         }
-      
+        private void Window_Loaded(object sender, RoutedEventArgs e)
+        {
+            listDevices();
+            setNotes();
+            //setMultipleOctaves(2,5);
+            setOctave(5);
+           
+        }
 
-        /// <summary>
-        /// Force the redraw of the keys when the container resizes
-        /// </summary>
-        public void resizeUI()
+        private void Window_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            resizeUI();
+        }
+
+        private void resizeUI()
         {
             if (!mLoaded)
                 return;
@@ -711,11 +657,6 @@ namespace PianoUserControl
             });
         }
 
-        /// <summary>
-        /// Highlight key as it is pressed
-        /// </summary>
-        /// <param name="rect"></param>
-        /// <param name="isBlack"></param>
         public void highlightKey(Rectangle rect, bool isBlack)
         {
             if (!isBlack)
@@ -725,7 +666,7 @@ namespace PianoUserControl
                 rect.Fill = new SolidColorBrush(Colors.DarkGray);
                 Rectangle rectPair = null;
                 if (rect.Name == CSHARPKEY1)
-                    rectPair = getBlackKeyByName(CSHARPKEY2, (int)rect.Tag);
+                    rectPair = getBlackKeyByName(CSHARPKEY2, (int) rect.Tag);
                 else if (rect.Name == CSHARPKEY2)
                     rectPair = getBlackKeyByName(CSHARPKEY1, (int)rect.Tag);
 
@@ -754,11 +695,6 @@ namespace PianoUserControl
             }
         }
 
-        /// <summary>
-        /// Remove highlight from key as it is stopped being pressed
-        /// </summary>
-        /// <param name="rect"></param>
-        /// <param name="isBlack"></param>
         public void unHighlightKey(Rectangle rect, bool isBlack)
         {
             if (!isBlack)
@@ -799,21 +735,13 @@ namespace PianoUserControl
         }
 
 
-        /// <summary>
-        /// Handle left button clicked event for a rectangle
-        /// </summary>
-        /// <param name="r"></param>
         private void evtLeftButtonDown(Rectangle r)
         {
             Console.WriteLine("left button down");
             highlightKey(r, isBlackRect(r));
-            playNote(setNoteAsPerOctave(noteNameToSound(r.Name), (int)r.Tag));
+            playNote(setNoteAsPerOctave(noteNameToSound(r.Name), (int) r.Tag));
         }
 
-        /// <summary>
-        /// Handle left button up event for a rectangle
-        /// </summary>
-        /// <param name="r"></param>
         private void evtLeftButtonUp(Rectangle r)
         {
             Console.WriteLine("left button up");
@@ -821,11 +749,6 @@ namespace PianoUserControl
             stopNote(setNoteAsPerOctave(noteNameToSound(r.Name), (int)r.Tag));
         }
 
-        /// <summary>
-        /// Handle mouse leave event for a rectangle
-        /// </summary>
-        /// <param name="r"></param>
-        /// <param name="e"></param>
         private void evtMouseLeave(Rectangle r, MouseEventArgs e)
         {
             Console.WriteLine("mouse leave");
@@ -836,11 +759,6 @@ namespace PianoUserControl
             }
         }
 
-        /// <summary>
-        /// Handle mouse entered event for a rectangle
-        /// </summary>
-        /// <param name="r"></param>
-        /// <param name="e"></param>
         private void evtMouseEnter(Rectangle r, MouseEventArgs e)
         {
             Console.WriteLine("mouse enter");
@@ -858,7 +776,7 @@ namespace PianoUserControl
 
         private void rect_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-            evtLeftButtonDown((Rectangle)sender);
+            evtLeftButtonDown((Rectangle) sender);
         }
 
         private void rect_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
@@ -876,31 +794,14 @@ namespace PianoUserControl
             evtMouseEnter((Rectangle)sender, e);
         }
 
-        private void rect_SizeChanged(object sender, SizeChangedEventArgs e)
-        {
-            resizeUI();
-        }
-
         #endregion ********************************************************
 
         private void grd_Loaded(object sender, RoutedEventArgs e)
         {
-
+            
         }
 
         private void grd_SizeChanged(object sender, SizeChangedEventArgs e)
-        {
-            resizeUI();
-        }
-
-        private void UserControl_Loaded(object sender, RoutedEventArgs e)
-        {
-            listDevices();
-            setNotes();
-           
-        }
-
-        private void UserControl_SizeChanged(object sender, SizeChangedEventArgs e)
         {
             resizeUI();
         }

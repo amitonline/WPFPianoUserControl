@@ -5,37 +5,8 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:PianoUserControl"
              mc:Ignorable="d" 
-             d:DesignHeight="450" d:DesignWidth="800" SizeChanged="UserControl_SizeChanged">
-    <Grid SizeChanged="Grid_SizeChanged">
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition></ColumnDefinition>
-            <ColumnDefinition></ColumnDefinition>
-            <ColumnDefinition></ColumnDefinition>
-            <ColumnDefinition></ColumnDefinition>
-            <ColumnDefinition></ColumnDefinition>
-            <ColumnDefinition></ColumnDefinition>
-            <ColumnDefinition></ColumnDefinition>
-        </Grid.ColumnDefinitions>
-        <Grid.RowDefinitions>
-            <RowDefinition></RowDefinition>
-        </Grid.RowDefinitions>
+             d:DesignHeight="450" d:DesignWidth="800" SizeChanged="UserControl_SizeChanged" Loaded="UserControl_Loaded">
+    <Grid Name="grd" Loaded="grd_Loaded" SizeChanged="grd_SizeChanged">
 
-        <Rectangle x:Name="C" Grid.Row="0" RadiusX="20" RadiusY="20"  Grid.Column="0" Fill="Ivory" Height="Auto" Margin="0 0 0 0 " StrokeThickness="1" Stroke="Black" MouseLeftButtonDown="C_MouseLeftButtonDown" MouseLeftButtonUp="C_MouseLeftButtonUp" MouseLeave="C_MouseLeave" MouseEnter="C_MouseEnter"></Rectangle>
-        <Rectangle x:Name="CSharp1" Grid.Row="0" Grid.Column="0" Fill="Black" Height="300" VerticalAlignment="Top"  Width="40" HorizontalAlignment="Right" Margin="0 0 0 0 " StrokeThickness="1" Stroke="Black" MouseLeftButtonDown="CSharp1_MouseLeftButtonDown" MouseLeftButtonUp="CSharp1_MouseLeftButtonUp" MouseEnter="CSharp1_MouseEnter" MouseLeave="CSharp1_MouseLeave"></Rectangle>
-        <Rectangle x:Name="D" Grid.Row="0"  RadiusX="20" RadiusY="20" Grid.Column="1" Fill="Ivory" Height="Auto" Margin="0 0 0 0" StrokeThickness="2" Stroke="Black" MouseLeftButtonDown="D_MouseLeftButtonDown" MouseLeftButtonUp="D_MouseLeftButtonUp" MouseLeave="D_MouseLeave" MouseEnter="D_MouseEnter"></Rectangle>
-        <Rectangle x:Name="CSharp2" Grid.Row="0" Grid.Column="1" Fill="Black" Height="300" VerticalAlignment="Top"  Width="40" HorizontalAlignment="Left" Margin="0 0 0 0 " StrokeThickness="1" Stroke="Black" MouseLeftButtonDown="CSharp2_MouseLeftButtonDown" MouseLeftButtonUp="CSharp2_MouseLeftButtonUp" MouseEnter="CSharp2_MouseEnter" MouseLeave="CSharp2_MouseLeave"></Rectangle>
-        <Rectangle x:Name="DSharp1" Grid.Row="0" Grid.Column="1" Fill="Black" Height="300" VerticalAlignment="Top"  Width="40" HorizontalAlignment="Right" Margin="0 0 0 0 " StrokeThickness="1" Stroke="Black" MouseLeftButtonDown="DSharp1_MouseLeftButtonDown" MouseLeftButtonUp="DSharp1_MouseLeftButtonUp" MouseEnter="DSharp1_MouseEnter" MouseLeave="DSharp1_MouseLeave"></Rectangle>
-        <Rectangle x:Name="E" Grid.Row="0"  RadiusX="20" RadiusY="20" Grid.Column="2" Fill="Ivory" Height="Auto" Margin="0 0 0 0" StrokeThickness="2" Stroke="Black" MouseLeftButtonDown="E_MouseLeftButtonDown" MouseLeftButtonUp="E_MouseLeftButtonUp" MouseLeave="E_MouseLeave" MouseEnter="E_MouseEnter"></Rectangle>
-        <Rectangle x:Name="DSharp2" Grid.Row="0" Grid.Column="2" Fill="Black" Height="300" VerticalAlignment="Top"  Width="40" HorizontalAlignment="Left" Margin="0 0 0 0 " StrokeThickness="1" Stroke="Black" MouseLeftButtonDown="DSharp2_MouseLeftButtonDown" MouseLeftButtonUp="DSharp2_MouseLeftButtonUp" MouseEnter="DSharp2_MouseEnter" MouseLeave="DSharp2_MouseLeave"></Rectangle>
-        <Rectangle x:Name="F" Grid.Row="0"  RadiusX="20" RadiusY="20" Grid.Column="3" Fill="Ivory" Height="Auto" Margin="0 0 0 0" StrokeThickness="2" Stroke="Black" MouseLeftButtonDown="F_MouseLeftButtonDown" MouseLeftButtonUp="F_MouseLeftButtonUp" MouseLeave="F_MouseLeave" MouseEnter="F_MouseEnter"></Rectangle>
-        <Rectangle x:Name="FSharp1" Grid.Row="0" Grid.Column="3" Fill="Black" Height="300" VerticalAlignment="Top"  Width="40" HorizontalAlignment="Right" Margin="0 0 0 0 " StrokeThickness="1" Stroke="Black" MouseLeftButtonDown="FSharp1_MouseLeftButtonDown" MouseLeftButtonUp="FSharp1_MouseLeftButtonUp" MouseEnter="FSharp1_MouseEnter" MouseLeave="FSharp1_MouseLeave"></Rectangle>
-        <Rectangle x:Name="G" Grid.Row="0"  RadiusX="20" RadiusY="20" Grid.Column="4" Fill="Ivory" Height="Auto" Margin="0 0 0 0" StrokeThickness="2" Stroke="Black" MouseLeftButtonDown="G_MouseLeftButtonDown" MouseLeftButtonUp="G_MouseLeftButtonUp" MouseLeave="G_MouseLeave" MouseEnter="G_MouseEnter"></Rectangle>
-        <Rectangle x:Name="FSharp2" Grid.Row="0" Grid.Column="4" Fill="Black" Height="300" VerticalAlignment="Top"  Width="40" HorizontalAlignment="Left" Margin="0 0 0 0 " StrokeThickness="1" Stroke="Black" MouseLeftButtonDown="FSharp2_MouseLeftButtonDown" MouseLeftButtonUp="FSharp2_MouseLeftButtonUp" MouseEnter="FSharp2_MouseEnter" MouseLeave="FSharp2_MouseLeave"></Rectangle>
-        <Rectangle x:Name="GSharp1" Grid.Row="0" Grid.Column="4" Fill="Black" Height="300" VerticalAlignment="Top"  Width="40" HorizontalAlignment="Right" Margin="0 0 0 0 " StrokeThickness="1" Stroke="Black" MouseLeftButtonUp="GSharp1_MouseLeftButtonUp" MouseMove="GSharp1_MouseMove" MouseEnter="GSharp1_MouseEnter" MouseLeave="GSharp1_MouseLeave"></Rectangle>
-        <Rectangle x:Name="A" Grid.Row="0"  RadiusX="20" RadiusY="20" Grid.Column="5" Fill="Ivory" Height="Auto" Margin="0 0 0 0" StrokeThickness="2" Stroke="Black" MouseLeftButtonDown="A_MouseLeftButtonDown" MouseLeftButtonUp="A_MouseLeftButtonUp" MouseLeave="A_MouseLeave" MouseEnter="A_MouseEnter"></Rectangle>
-        <Rectangle x:Name="GSharp2" Grid.Row="0" Grid.Column="5" Fill="Black" Height="300" VerticalAlignment="Top"  Width="40" HorizontalAlignment="Left" Margin="0 0 0 0 " StrokeThickness="1" Stroke="Black" MouseLeftButtonDown="GSharp2_MouseLeftButtonDown" MouseLeftButtonUp="GSharp2_MouseLeftButtonUp" MouseEnter="GSharp2_MouseEnter" MouseLeave="GSharp2_MouseLeave"></Rectangle>
-        <Rectangle x:Name="ASharp1" Grid.Row="0" Grid.Column="5" Fill="Black" Height="300" VerticalAlignment="Top"  Width="40" HorizontalAlignment="Right" Margin="0 0 0 0 " StrokeThickness="1" Stroke="Black" MouseLeftButtonDown="ASharp1_MouseLeftButtonDown" MouseLeftButtonUp="ASharp1_MouseLeftButtonUp" MouseEnter="ASharp1_MouseEnter" MouseLeave="ASharp1_MouseLeave"></Rectangle>
-        <Rectangle x:Name="B" Grid.Row="0"  RadiusX="20" RadiusY="20"  Grid.Column="6" Fill="Ivory" Height="Auto" Margin="0 0 0 0" StrokeThickness="2" Stroke="Black" MouseLeftButtonDown="B_MouseLeftButtonDown" MouseLeftButtonUp="B_MouseLeftButtonUp" MouseLeave="B_MouseLeave" MouseEnter="B_MouseEnter"></Rectangle>
-        <Rectangle x:Name="ASharp2" Grid.Row="0" Grid.Column="6" Fill="Black" Height="300" VerticalAlignment="Top"  Width="40" HorizontalAlignment="Left" Margin="0 0 0 0 " StrokeThickness="1" Stroke="Black" MouseLeftButtonDown="ASharp2_MouseLeftButtonDown" MouseLeftButtonUp="ASharp2_MouseLeftButtonUp" MouseEnter="ASharp2_MouseEnter" MouseLeave="ASharp2_MouseLeave"></Rectangle>
     </Grid>
 </UserControl>

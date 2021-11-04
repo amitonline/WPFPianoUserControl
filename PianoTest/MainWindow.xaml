@@ -1,0 +1,44 @@
+﻿<Window x:Class="PianoTest.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:app="clr-namespace:PianoUserControl;assembly=PianoUserControl"
+        xmlns:local="clr-namespace:PianoTest"
+        mc:Ignorable="d"
+        Title="MainWindow" Height="450" Width="800" Loaded="Window_Loaded">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"></RowDefinition>
+            <RowDefinition Height="8*"></RowDefinition>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"></ColumnDefinition>
+        </Grid.ColumnDefinitions>
+
+        <UniformGrid Grid.Row="0" Grid.Column="0" HorizontalAlignment="Left" VerticalAlignment="Center" Rows="1">
+            <Label Grid.Column="0" Content="Start Octave" Margin="0,0,5,5"></Label>
+            <ComboBox Name="cboStart"    Grid.Column="1" Margin="0,0,5,5" SelectionChanged="cboStart_SelectionChanged">
+                <ComboBoxItem Tag="1">1</ComboBoxItem>
+                <ComboBoxItem Tag="2">2</ComboBoxItem>
+                <ComboBoxItem Tag="3">3</ComboBoxItem>
+                <ComboBoxItem Tag="4">4</ComboBoxItem>
+                <ComboBoxItem Tag="5">5</ComboBoxItem>
+                <ComboBoxItem Tag="6">6</ComboBoxItem>
+                <ComboBoxItem Tag="7">7</ComboBoxItem>
+            </ComboBox>
+            <Label Grid.Column="2" Content="Ending Octave" Margin="0,0,5,5"></Label>
+            <ComboBox Name="cboStop"   Grid.Column="3" Margin="0,0,5,5" SelectionChanged="cboStop_SelectionChanged">
+                <ComboBoxItem Tag="1">1</ComboBoxItem>
+                <ComboBoxItem Tag="2">2</ComboBoxItem>
+                <ComboBoxItem Tag="3">3</ComboBoxItem>
+                <ComboBoxItem Tag="4">4</ComboBoxItem>
+                <ComboBoxItem Tag="5">5</ComboBoxItem>
+                <ComboBoxItem Tag="6">6</ComboBoxItem>
+                <ComboBoxItem Tag="7">7</ComboBoxItem>
+            </ComboBox>
+        </UniformGrid>
+        <app:UserControl1 Name="synth" Grid.Row="1" Grid.Column="0"></app:UserControl1>
+       
+    </Grid>
+</Window>

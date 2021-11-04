@@ -1,7 +1,7 @@
-﻿<Application x:Class="UCTest.App"
+﻿<Application x:Class="PianoTest.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:local="clr-namespace:UCTest"
+             xmlns:local="clr-namespace:PianoTest"
              StartupUri="MainWindow.xaml">
     <Application.Resources>
          
