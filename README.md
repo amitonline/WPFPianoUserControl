@@ -21,3 +21,6 @@ https://www.youtube.com/playlist?list=PLLAs2gIR3bXOfS2JkOKh9U3ahCYp3nDoo
 
 
 ![Screenshot](https://github.com/amitonline/WPFPianoUserControl/blob/master/mq2.jpg)
+
+**UPDATE MAY 21, 2024**
+Restarted work on this. Changed the display of the keys from Grid view to Canvas. Added DryWetMIDI library to do the MIDI parts. Added the standard General MIDI instrument list to allow selection of instrument. In case no MIDI keyboard is available, it will use the default Microsoft GS WaveTable Synth as the default MIDI output device
