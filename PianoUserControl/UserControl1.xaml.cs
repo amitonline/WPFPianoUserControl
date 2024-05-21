@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -10,9 +11,16 @@ using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using System.Windows.Media.Media3D;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
-using NAudio.Midi;
+
+using static System.Windows.Forms.VisualStyles.VisualStyleElement;
+using Melanchall.DryWetMidi.Multimedia;
+using Melanchall.DryWetMidi.Interaction;
+using Melanchall.DryWetMidi.Core;
+using Melanchall.DryWetMidi.Common;
+using Melanchall.DryWetMidi.MusicTheory;
 
 namespace PianoUserControl
 {
@@ -21,10 +29,8 @@ namespace PianoUserControl
     /// </summary>
     public partial class UserControl1 : UserControl
     {
-        MidiIn midiIn = null;
-        int midiInIndex = -1;
-        int midiOutIndex = -1;
-
+        OutputDevice midiOUTDevice = null;
+        
         //note frequencies
         private int mOctave = 4;    // default octave (octaves can be from 1 to 7)
         private static int MIN_OCTAVE = 1;
@@ -55,32 +61,62 @@ namespace PianoUserControl
         private const string BKEY = "b";
 
         private const string CSHARPKEY1 = "csharp1";
-        private const string CSHARPKEY2 = "csharp2";
         private const string DSHARPKEY1 = "dsharp1";
-        private const string DSHARPKEY2 = "dsharp2";
         private const string FSHARPKEY1 = "fsharp1";
-        private const string FSHARPKEY2 = "fsharp3";
         private const string GSHARPKEY1 = "gsharp1";
-        private const string GSHARPKEY2 = "gsharp2";
         private const string ASHARPKEY1 = "asharp1";
-        private const string ASHARPKEY2 = "asharp2";
 
+        private const string CSHARPKEY1A = "csharp1a";
+        private const string DSHARPKEY1A = "dsharp1a";
+        private const string FSHARPKEY1A = "fsharp1a";
+        private const string GSHARPKEY1A = "gsharp1a";
+        private const string ASHARPKEY1A = "asharp1a";
 
-        //black keys are drawn as a percentage of the white key width and length
-        private const double BLACK_KEY_WIDTH_PERCENT = 30;
+        //white keys sizes
+        private const double WHITE_KEY_WIDTH_PERCENT = 14.28;
+        private const double WHITE_KEY_HEIGHT_PERCENT = 95;
+
+        //black keys sizes
+        private const double BLACK_KEY_WIDTH_PERCENT = 10;
         private const double BLACK_KEY_HEIGHT_PERCENT = 60;
+        private const double BLACK_KEY_OFFSET_PERCENT = 65; // offset percent of black from its preceding white key
 
-        private List<Rectangle> mRects = new List<Rectangle>();
-        private List<Rectangle> mBlackRects = new List<Rectangle>();
+        //ivory keys sizes
+        private const double IVORY_KEY_WIDTH_PERCENT = 8;
+        private const double IVORY_KEY_HEIGHT_PERCENT = 55;
+        private const double IVORY_KEY_OFFSET_PERCENT = 10; // offset percent of black from its parent black key
 
-        private Double mBlackHeight = 0.0;
-        private Double mBlackWidth = 0.0;
+
+        private const double KEY_TOP = 5;//y pos for all keys
+        private const double WHITE_KEY_HORIZ_SPACING = 0;//space between white keys
+
+        private List<Rectangle> mRects = new List<Rectangle>(); // white keys
+        private List<Rectangle> mBlackRects = new List<Rectangle>(); // black keys
+        private List<Rectangle> mIvoryRects = new List<Rectangle>(); // inner rects for black keys
+
+        private Double mWhiteWidth = 50;
+        private Double mWhiteHeight = 250;
+        private Double mBlackHeight = 180;
+        private Double mBlackWidth = 40.0;
+        private int mBlackKeyOffset = 30;
+        private Double mIvoryHeight = 180;
+        private Double mIvoryWidth = 40.0;
+        private int mIvoryKeyOffset = 30;
 
         private int mNumOctaves = 1;        // by default show only 1 octave
-        private int mColumns = 6;           // default is 6 columns for one octave
+        private int mColumns = 7;          // default is 6 columns for one octave
         private int mStartOctave = 4;       // default start and stop octave
         private int mStopOctave = 4;
 
+        public enum INSTRUMENTS
+        {
+            NONE, ACOUSTIC_GRAND_PIANO, BRIGHT_PIANO,ELECTRIC_GRAND_PIANO,HONKYTONK_PIANO,ELECTRTC_PIANO1,ELECTRIC_PIANO2,
+            HARPSICHORD,CLAVINET,CELESTA,GLOCKENSPIEL,MUSICBOX,VIBRAPHONE,MARIMBA,XYLOPHONE,TUBULAR_BELLS,DULCIMER
+        }
+        public string[] mInstruments = { "None", "Acoustic Grand Piano", "Bright Piano", "Electric Grand Piano",
+                                         "HonkyTonk Piano", "Electric Piano 1", "Electric Piano 2", "Harpsichord",
+                                         "Clavinet", "Celesta", "Glockenspiel", "MusicBox", "Vibraphone", "Marimba",
+                                         "Xylophone", "Tubular Bells", "Dulcimer"};
         private bool mLoaded = false;
 
         public UserControl1()
@@ -208,40 +244,41 @@ namespace PianoUserControl
 
         public int getOctave() { return mOctave; }
 
-        /// <summary>
-        /// Get list of MIDI in and out devices
-        /// </summary>
-        void listDevices()
+        public void setMIDIOutputDevice(OutputDevice dev)
         {
-            Console.WriteLine("Midi in devices");
-            for (int i = 0; i < MidiIn.NumberOfDevices; i++)
-            {
-                midiInIndex = 0;
-                Console.WriteLine(MidiIn.DeviceInfo(i).ProductName);
-            }
-            Console.WriteLine("Midi Out devices");
-            for (int i = 0; i < MidiOut.NumberOfDevices; i++)
-            {
-                if (i > 0)
-                    midiOutIndex = i;
-                Console.WriteLine(MidiOut.DeviceInfo(i).ProductName);
-            }
+            if (midiOUTDevice != null)
+                midiOUTDevice.Dispose();
 
+            midiOUTDevice = dev;
+            midiOUTDevice.PrepareForEventsSending();
+           
         }
 
+        /// <summary>
+        /// Do a program change event 
+        /// </summary>
+        /// <param name="inst">1 to 89 for general MIDI instrument</param>
+        public void setMIDIInstrument(int inst)
+        {
+            if (midiOUTDevice == null)
+                return;
+
+            ProgramChangeEvent evt = new ProgramChangeEvent((SevenBitNumber)inst);
+            midiOUTDevice.SendEvent(evt);
+        }
+         
         /// <summary>
         /// Send midi command to play a note frequency for a fixed duration
         /// </summary>
         /// <param name="note"></param>
         void playNote(int note)
         {
-            if (midiOutIndex == -1)
+            if (midiOUTDevice == null)
                 return;
-            using (MidiOut midiOut = new MidiOut(midiOutIndex))
-            {
-                midiOut.Send(MidiMessage.StartNote(note, 127, 1).RawData);
-                Console.WriteLine("play note" + note);
-            }
+
+            NoteOnEvent evt = new NoteOnEvent((SevenBitNumber) note,(SevenBitNumber) 127);
+            midiOUTDevice.SendEvent(evt);
+            Debug.WriteLine("play note" + note);
         }
 
         /// <summary>
@@ -250,12 +287,11 @@ namespace PianoUserControl
         /// <param name="note"></param>
         void stopNote(int note)
         {
-            if (midiOutIndex == -1)
+            if (midiOUTDevice == null)
                 return;
-            using (MidiOut midiOut = new MidiOut(midiOutIndex))
-            {
-                midiOut.Send(MidiMessage.StopNote(note, 127, 1).RawData);
-            }
+            NoteOffEvent evt = new NoteOffEvent((SevenBitNumber)note, (SevenBitNumber)10);
+            midiOUTDevice.SendEvent(evt);
+             
         }
 
         /// <summary>
@@ -282,15 +318,15 @@ namespace PianoUserControl
             else if (name == BKEY)
                 retVal = BNOTE;
 
-            else if (name == CSHARPKEY1 || name == CSHARPKEY2)
+            else if (name == CSHARPKEY1 || name == CSHARPKEY1A)
                 retVal = CSHARPNOTE;
-            else if (name == DSHARPKEY1 || name == DSHARPKEY2)
+            else if (name == DSHARPKEY1 || name == DSHARPKEY1A)
                 retVal = DSHARPNOTE;
-            else if (name == FSHARPKEY1 || name == FSHARPKEY2)
+            else if (name == FSHARPKEY1 || name == FSHARPKEY1A)
                 retVal = FSHARPNOTE;
-            else if (name == GSHARPKEY1 || name == GSHARPKEY2)
+            else if (name == GSHARPKEY1 || name == GSHARPKEY1A)
                 retVal = GSHARPNOTE;
-            else if (name == ASHARPKEY1 || name == ASHARPKEY2)
+            else if (name == ASHARPKEY1 || name == ASHARPKEY1A)
                 retVal = ASHARPNOTE;
 
             return retVal;
@@ -300,50 +336,172 @@ namespace PianoUserControl
 
         #region UI handling *************************************************************************************
 
+
+        /// <summary>
+        /// Create rectangle for black keys
+        /// </summary>
+        /// <param name="name">rect name</param>
+        /// <param name="tag">rect tag</param>
+        /// <returns>rectb</returns>
+        private Rectangle createBlackKey(string name, object tag)
+        {
+            Rectangle rectb = new Rectangle();
+            rectb.Width = mBlackWidth;
+            rectb.Fill = new SolidColorBrush(Colors.Black);
+            rectb.Height = mBlackHeight;
+            rectb.Margin = new Thickness(0, 0, 0, 0);
+            rectb.StrokeThickness = 2;
+            rectb.Stroke = new SolidColorBrush(Colors.Black);
+            rectb.VerticalAlignment = VerticalAlignment.Top;
+            rectb.HorizontalAlignment = HorizontalAlignment.Right;
+            rectb.MouseLeftButtonDown += rect_MouseLeftButtonDown;
+            rectb.MouseLeftButtonUp += rect_MouseLeftButtonUp;
+            rectb.MouseEnter += rect_MouseEnter;
+            rectb.MouseLeave += rect_MouseLeave;
+            rectb.Name = name;
+            rectb.Tag = tag;
+            Panel.SetZIndex(rectb, 2);
+
+            //set placement 
+            rectb = positionBlackKeys(name, tag, rectb);
+            return rectb;
+        }
+
+        /// <summary>
+        /// Create inner rectangle for black keys
+        /// </summary>
+        /// <param name="name">rect name</param>
+        /// <param name="tag">rect tag</param>
+        /// <param name="parent">parent black rectangle</param>
+        /// <returns>rectb</returns>
+        private Rectangle createIvoryKey(string name, object tag, Rectangle parent)
+        {
+            Rectangle rectb = new Rectangle();
+            rectb.Width = mIvoryWidth;
+            rectb.Fill = new SolidColorBrush(Colors.Ivory);
+            rectb.Height = mIvoryHeight;
+            rectb.Margin = new Thickness(0, 0, 0, 0);
+            rectb.StrokeThickness = 2;
+            rectb.Stroke = new SolidColorBrush(Colors.Black);
+            rectb.VerticalAlignment = VerticalAlignment.Top;
+            rectb.HorizontalAlignment = HorizontalAlignment.Right;
+            rectb.MouseLeftButtonDown += rect_MouseLeftButtonDown;
+            rectb.MouseLeftButtonUp += rect_MouseLeftButtonUp;
+            rectb.MouseEnter += rect_MouseEnter;
+            rectb.MouseLeave += rect_MouseLeave;
+            rectb.Name = name;
+            rectb.Tag = tag;
+            rectb.Fill = createGradientForIvoryKey();
+            Panel.SetZIndex(rectb, 3);
+
+            //set placement 
+            rectb = positionIvoryKeys(name, tag, rectb, parent);
+            return rectb;
+        }
+
+
+        /// <summary>
+        /// Position black keys based on the key name
+        /// </summary>
+        /// <param name="name">key name</param>
+        /// <param name="tag">octave info</param>
+        /// <param name="rectb">black rectangle</param>
+        /// <returns>rectb</returns>
+        private Rectangle positionBlackKeys(string name, object tag, Rectangle rectb)
+        {
+            Rectangle w = null;
+            if (name == CSHARPKEY1)
+            {
+                w = getWhiteKeyByName(CKEY, (int)tag);
+            }
+            else if (name == DSHARPKEY1)
+            {
+                w = getWhiteKeyByName(DKEY, (int)tag);
+            }
+            else if (name == FSHARPKEY1)
+            {
+                w = getWhiteKeyByName(FKEY, (int)tag);
+            }
+            else if (name == GSHARPKEY1)
+            {
+                w = getWhiteKeyByName(GKEY, (int)tag);
+            }
+            else if (name == ASHARPKEY1)
+            {
+                w = getWhiteKeyByName(AKEY, (int)tag);
+            }
+            Canvas.SetTop(rectb, KEY_TOP);
+            double offsetPos = (BLACK_KEY_OFFSET_PERCENT / 100) * w.Width;
+            Canvas.SetLeft(rectb, Canvas.GetLeft(w) + offsetPos);
+
+            return rectb;
+        }
+
+        /// <summary>
+        /// Position ivory keys based on the key name
+        /// </summary>
+        /// <param name="name">key name</param>
+        /// <param name="tag">octave info</param>
+        /// <param name="rectb">ivory rectangle</param>
+        /// <param name="parent">parent black key</param>
+        /// <returns>rectb</returns>
+        private Rectangle positionIvoryKeys(string name, object tag, Rectangle rectb, Rectangle parent)
+        {
+           
+            Canvas.SetTop(rectb, KEY_TOP);
+            double offsetPos = (IVORY_KEY_OFFSET_PERCENT / 100) * parent.Width;
+            Canvas.SetLeft(rectb, Canvas.GetLeft(parent) + offsetPos);
+            return rectb;
+        }
+
         /// <summary>
         /// Init the keyboard rects and the Grid constraints
         /// </summary>
         private void initUI()
         {
             mLoaded = false;
-            grd.Width = this.ActualWidth - 30;
-            grd.Height = this.ActualHeight - 40;
-            grd.HorizontalAlignment = HorizontalAlignment.Left;
-            grd.VerticalAlignment = VerticalAlignment.Top;
-            grd.ShowGridLines = false;
-            grd.Background = new SolidColorBrush(Colors.White);
+            //remove any keys present in data
+            canvas.Children.Clear();
+            mRects.Clear();
+            mBlackRects.Clear();
+            mIvoryRects.Clear();
 
-            grd.RowDefinitions.Clear();
-            grd.ColumnDefinitions.Clear();
+            canvas.Width = this.ActualWidth - 5;
+            canvas.Height = this.ActualHeight - 5;
+            canvas.HorizontalAlignment = HorizontalAlignment.Left;
+            canvas.VerticalAlignment = VerticalAlignment.Top;
 
-            for (int i = 1; i <= mNumOctaves; i++)
-            {
-                for (int j = 0; j <= mColumns; j++)
-                {
-                    ColumnDefinition col = new ColumnDefinition();
-                    col.Width = new GridLength(1, GridUnitType.Star);
-                    grd.ColumnDefinitions.Add(col);
-                }
-            }
-            RowDefinition row = new RowDefinition();
-            row.Height = new GridLength(1, GridUnitType.Star);
-            grd.RowDefinitions.Add(row);
+            mWhiteHeight = canvas.ActualHeight * (WHITE_KEY_HEIGHT_PERCENT / 100);
+            mWhiteWidth= canvas.ActualWidth * (WHITE_KEY_WIDTH_PERCENT / 100);
 
-            mBlackHeight = this.Height * (BLACK_KEY_HEIGHT_PERCENT / 100);
-            mBlackWidth = 100.0 * (BLACK_KEY_WIDTH_PERCENT / 100); // this width will actually be the percentage of a white key width
-                                                                   // this gets set in resizeUI()
+            mBlackHeight = canvas.ActualHeight * (BLACK_KEY_HEIGHT_PERCENT / 100);
+            mBlackWidth = canvas.ActualWidth * (BLACK_KEY_WIDTH_PERCENT / 100); // this width will actually be the percentage of a white key width
+                                                                                // this gets set in resizeUI()
+            mIvoryHeight = canvas.ActualHeight * (IVORY_KEY_HEIGHT_PERCENT / 100);
+            mIvoryWidth = canvas.ActualWidth * (IVORY_KEY_WIDTH_PERCENT / 100);
 
-            int gridCol = 0;
+            //adjust for number of octave
+            mWhiteWidth = (mWhiteWidth / (mStopOctave - mStartOctave+1));
+            mBlackWidth = (mBlackWidth / (mStopOctave - mStartOctave+1));
+            mIvoryWidth = (mIvoryWidth / (mStopOctave - mStartOctave + 1));
+
+
+            double currWhiteKeyPos = 0; // track horizontal pos for white keys
+
+
             // white keys interspersed with black keys
             for (int octaves = mStartOctave; octaves <= mStopOctave; octaves++)
             {
-                for (int i = 0; i <= mColumns; i++)
+                for (int i = 0; i < mColumns; i++)
                 {
                     Rectangle rect = new Rectangle();
-                    rect.RadiusX = 20;
-                    rect.RadiusY = 20;
+                    rect.RadiusX = 10;
+                    rect.RadiusY = 10;
                     rect.Fill = new SolidColorBrush(Colors.Ivory);
-                    rect.Height = Double.NaN;
+                    rect.Height = mWhiteHeight;
+                    rect.Width = mWhiteWidth;
+                    Canvas.SetTop(rect, KEY_TOP);
+                    Canvas.SetLeft(rect, currWhiteKeyPos);
                     rect.Margin = new Thickness(0, 0, 0, 0);
                     rect.StrokeThickness = 2;
                     rect.Stroke = new SolidColorBrush(Colors.Black);
@@ -381,270 +539,69 @@ namespace PianoUserControl
                         case 6:
                             rect.Name = BKEY;
                             break;
+                        
+                      
                     }
-                    Grid.SetRow(rect, 0);
-                    Grid.SetColumn(rect, gridCol);
-
-                    grd.Children.Add(rect);
+                    canvas.Children.Add(rect);
                     mRects.Add(rect);
 
+               
+
+                    //show black keys
                     if (i == 0)
                     {
-                        // csharp 1
-                        Rectangle rectb = new Rectangle();
-                        rectb.Width = mBlackWidth;
-                        rectb.Fill = new SolidColorBrush(Colors.Black);
-                        rectb.Height = mBlackHeight;
-                        rectb.Margin = new Thickness(0, 0, 0, 0);
-                        rectb.StrokeThickness = 2;
-                        rectb.Stroke = new SolidColorBrush(Colors.Black);
-                        rectb.VerticalAlignment = VerticalAlignment.Top;
-                        rectb.HorizontalAlignment = HorizontalAlignment.Right;
-                        rectb.MouseLeftButtonDown += rect_MouseLeftButtonDown;
-                        rectb.MouseLeftButtonUp += rect_MouseLeftButtonUp;
-                        rectb.MouseEnter += rect_MouseEnter;
-                        rectb.MouseLeave += rect_MouseLeave;
-                        rectb.Name = CSHARPKEY1;
-                        rectb.Tag = octaves;
-
-                        Grid.SetRow(rectb, 0);
-                        Grid.SetColumn(rectb, gridCol);
-                        grd.Children.Add(rectb);
+                        Rectangle rectb = createBlackKey(CSHARPKEY1, octaves);
                         mBlackRects.Add(rectb);
+                        canvas.Children.Add(rectb);
+                        Rectangle rectInner = createIvoryKey(CSHARPKEY1A, octaves, rectb);
+                        canvas.Children.Add(rectInner);
+                        mIvoryRects.Add(rectInner);
                     }
 
                     else if (i == 1)
                     {
-                        // csharp 2
-                        Rectangle rectb = new Rectangle();
-
-                        rectb.Width = mBlackWidth;
-                        rectb.Fill = new SolidColorBrush(Colors.Black);
-                        rectb.Height = mBlackHeight;
-                        rectb.Margin = new Thickness(0, 0, 0, 0);
-                        rectb.StrokeThickness = 2;
-                        rectb.Stroke = new SolidColorBrush(Colors.Black);
-                        rectb.VerticalAlignment = VerticalAlignment.Top;
-                        rectb.HorizontalAlignment = HorizontalAlignment.Left;
-                        rectb.MouseLeftButtonDown += rect_MouseLeftButtonDown;
-                        rectb.MouseLeftButtonUp += rect_MouseLeftButtonUp;
-                        rectb.MouseEnter += rect_MouseEnter;
-                        rectb.MouseLeave += rect_MouseLeave;
-                        rectb.Name = CSHARPKEY2;
-                        rectb.Tag = octaves;
-
-                        Grid.SetRow(rectb, 0);
-                        Grid.SetColumn(rectb, gridCol);
-                        grd.Children.Add(rectb);
-                        mBlackRects.Add(rectb);
-
                         // dsharp 1
-                        Rectangle rectc = new Rectangle();
-
-                        rectc.Width = mBlackWidth;
-                        rectc.Fill = new SolidColorBrush(Colors.Black);
-                        rectc.Height = mBlackHeight;
-                        rectc.Margin = new Thickness(0, 0, 0, 0);
-                        rectc.StrokeThickness = 2;
-                        rectc.Stroke = new SolidColorBrush(Colors.Black);
-                        rectc.VerticalAlignment = VerticalAlignment.Top;
-                        rectc.HorizontalAlignment = HorizontalAlignment.Right;
-                        rectc.MouseLeftButtonDown += rect_MouseLeftButtonDown;
-                        rectc.MouseLeftButtonUp += rect_MouseLeftButtonUp;
-                        rectc.MouseEnter += rect_MouseEnter;
-                        rectc.MouseLeave += rect_MouseLeave;
-                        rectc.Name = DSHARPKEY1;
-                        rectc.Tag = octaves;
-
-                        Grid.SetRow(rectc, 0);
-                        Grid.SetColumn(rectc, gridCol);
-                        grd.Children.Add(rectc);
+                        Rectangle rectc = createBlackKey(DSHARPKEY1, octaves);
                         mBlackRects.Add(rectc);
-                    }
-
-                    else if (i == 2)
-                    {
-                        // dsharp 2
-                        Rectangle rectb = new Rectangle();
-
-                        rectb.Width = mBlackWidth;
-                        rectb.Fill = new SolidColorBrush(Colors.Black);
-                        rectb.Height = mBlackHeight;
-                        rectb.Margin = new Thickness(0, 0, 0, 0);
-                        rectb.StrokeThickness = 2;
-                        rectb.Stroke = new SolidColorBrush(Colors.Black);
-                        rectb.VerticalAlignment = VerticalAlignment.Top;
-                        rectb.HorizontalAlignment = HorizontalAlignment.Left;
-                        rectb.MouseLeftButtonDown += rect_MouseLeftButtonDown;
-                        rectb.MouseLeftButtonUp += rect_MouseLeftButtonUp;
-                        rectb.MouseEnter += rect_MouseEnter;
-                        rectb.MouseLeave += rect_MouseLeave;
-                        rectb.Name = DSHARPKEY2;
-                        rectb.Tag = octaves;
-
-                        Grid.SetRow(rectb, 0);
-                        Grid.SetColumn(rectb, gridCol);
-                        grd.Children.Add(rectb);
-                        mBlackRects.Add(rectb);
-
+                        canvas.Children.Add(rectc);
+                        Rectangle rectInner = createIvoryKey(DSHARPKEY1A, octaves, rectc);
+                        canvas.Children.Add(rectInner);
+                        mIvoryRects.Add(rectInner);
                     }
 
                     else if (i == 3)
                     {
                         // fsharp 1
-                        Rectangle rectb = new Rectangle();
-
-                        rectb.Width = mBlackWidth;
-                        rectb.Fill = new SolidColorBrush(Colors.Black);
-                        rectb.Height = mBlackHeight;
-                        rectb.Margin = new Thickness(0, 0, 0, 0);
-                        rectb.StrokeThickness = 2;
-                        rectb.Stroke = new SolidColorBrush(Colors.Black);
-                        rectb.VerticalAlignment = VerticalAlignment.Top;
-                        rectb.HorizontalAlignment = HorizontalAlignment.Right;
-                        rectb.MouseLeftButtonDown += rect_MouseLeftButtonDown;
-                        rectb.MouseLeftButtonUp += rect_MouseLeftButtonUp;
-                        rectb.MouseEnter += rect_MouseEnter;
-                        rectb.MouseLeave += rect_MouseLeave;
-                        rectb.Name = FSHARPKEY1;
-                        rectb.Tag = octaves;
-
-                        Grid.SetRow(rectb, 0);
-                        Grid.SetColumn(rectb, gridCol);
-                        grd.Children.Add(rectb);
+                        Rectangle rectb = createBlackKey(FSHARPKEY1, octaves);
                         mBlackRects.Add(rectb);
-
-
+                        canvas.Children.Add(rectb);
+                        Rectangle rectInner = createIvoryKey(FSHARPKEY1A, octaves, rectb);
+                        canvas.Children.Add(rectInner);
+                        mIvoryRects.Add(rectInner);
                     }
 
                     else if (i == 4)
                     {
-                        // fsharp 2
-                        Rectangle rectb = new Rectangle();
-
-                        rectb.Width = mBlackWidth;
-                        rectb.Fill = new SolidColorBrush(Colors.Black);
-                        rectb.Height = mBlackHeight;
-                        rectb.Margin = new Thickness(0, 0, 0, 0);
-                        rectb.StrokeThickness = 2;
-                        rectb.Stroke = new SolidColorBrush(Colors.Black);
-                        rectb.VerticalAlignment = VerticalAlignment.Top;
-                        rectb.HorizontalAlignment = HorizontalAlignment.Left;
-                        rectb.MouseLeftButtonDown += rect_MouseLeftButtonDown;
-                        rectb.MouseLeftButtonUp += rect_MouseLeftButtonUp;
-                        rectb.MouseEnter += rect_MouseEnter;
-                        rectb.MouseLeave += rect_MouseLeave;
-                        rectb.Name = FSHARPKEY2;
-                        rectb.Tag = octaves;
-
-
-                        Grid.SetRow(rectb, 0);
-                        Grid.SetColumn(rectb, gridCol);
-                        grd.Children.Add(rectb);
-                        mBlackRects.Add(rectb);
-
                         //gsharp 1
-                        Rectangle rectc = new Rectangle();
-
-                        rectc.Width = mBlackWidth;
-                        rectc.Fill = new SolidColorBrush(Colors.Black);
-                        rectc.Height = mBlackHeight;
-                        rectc.Margin = new Thickness(0, 0, 0, 0);
-                        rectc.StrokeThickness = 2;
-                        rectc.Stroke = new SolidColorBrush(Colors.Black);
-                        rectc.VerticalAlignment = VerticalAlignment.Top;
-                        rectc.HorizontalAlignment = HorizontalAlignment.Right;
-                        rectc.MouseLeftButtonDown += rect_MouseLeftButtonDown;
-                        rectc.MouseLeftButtonUp += rect_MouseLeftButtonUp;
-                        rectc.MouseEnter += rect_MouseEnter;
-                        rectc.MouseLeave += rect_MouseLeave;
-                        rectc.Name = GSHARPKEY1;
-                        rectc.Tag = octaves;
-
-                        Grid.SetRow(rectc, 0);
-                        Grid.SetColumn(rectc, gridCol);
-                        grd.Children.Add(rectc);
+                        Rectangle rectc = createBlackKey(GSHARPKEY1, octaves);
                         mBlackRects.Add(rectc);
-
+                        canvas.Children.Add(rectc);
+                        Rectangle rectInner = createIvoryKey(GSHARPKEY1A, octaves, rectc);
+                        canvas.Children.Add(rectInner);
+                        mIvoryRects.Add(rectInner);
                     }
 
                     else if (i == 5)
                     {
-                        // gsharp 2
-                        Rectangle rectb = new Rectangle();
-
-                        rectb.Width = mBlackWidth;
-                        rectb.Fill = new SolidColorBrush(Colors.Black);
-                        rectb.Height = mBlackHeight;
-                        rectb.Margin = new Thickness(0, 0, 0, 0);
-                        rectb.StrokeThickness = 2;
-                        rectb.Stroke = new SolidColorBrush(Colors.Black);
-                        rectb.VerticalAlignment = VerticalAlignment.Top;
-                        rectb.HorizontalAlignment = HorizontalAlignment.Left;
-                        rectb.MouseLeftButtonDown += rect_MouseLeftButtonDown;
-                        rectb.MouseLeftButtonUp += rect_MouseLeftButtonUp;
-                        rectb.MouseEnter += rect_MouseEnter;
-                        rectb.MouseLeave += rect_MouseLeave;
-                        rectb.Name = GSHARPKEY2;
-                        rectb.Tag = octaves;
-
-                        Grid.SetRow(rectb, 0);
-                        Grid.SetColumn(rectb, gridCol);
-                        grd.Children.Add(rectb);
-                        mBlackRects.Add(rectb);
-
                         //asharp 1
-                        Rectangle rectc = new Rectangle();
-
-                        rectc.Width = mBlackWidth;
-                        rectc.Fill = new SolidColorBrush(Colors.Black);
-                        rectc.Height = mBlackHeight;
-                        rectc.Margin = new Thickness(0, 0, 0, 0);
-                        rectc.StrokeThickness = 2;
-                        rectc.Stroke = new SolidColorBrush(Colors.Black);
-                        rectc.VerticalAlignment = VerticalAlignment.Top;
-                        rectc.HorizontalAlignment = HorizontalAlignment.Right;
-                        rectc.MouseLeftButtonDown += rect_MouseLeftButtonDown;
-                        rectc.MouseLeftButtonUp += rect_MouseLeftButtonUp;
-                        rectc.MouseEnter += rect_MouseEnter;
-                        rectc.MouseLeave += rect_MouseLeave;
-                        rectc.Name = ASHARPKEY1;
-                        rectc.Tag = octaves;
-
-                        Grid.SetRow(rectc, 0);
-                        Grid.SetColumn(rectc, gridCol);
-                        grd.Children.Add(rectc);
+                        Rectangle rectc = createBlackKey(ASHARPKEY1, octaves);
                         mBlackRects.Add(rectc);
-
+                        canvas.Children.Add(rectc);
+                        Rectangle rectInner = createIvoryKey(ASHARPKEY1A, octaves, rectc);
+                        canvas.Children.Add(rectInner);
+                        mIvoryRects.Add(rectInner);
                     }
 
-                    else if (i == 6)
-                    {
-                        // asharp 2
-                        Rectangle rectb = new Rectangle();
-
-                        rectb.Width = mBlackWidth;
-                        rectb.Fill = new SolidColorBrush(Colors.Black);
-                        rectb.Height = mBlackHeight;
-                        rectb.Margin = new Thickness(0, 0, 0, 0);
-                        rectb.StrokeThickness = 2;
-                        rectb.Stroke = new SolidColorBrush(Colors.Black);
-                        rectb.VerticalAlignment = VerticalAlignment.Top;
-                        rectb.HorizontalAlignment = HorizontalAlignment.Left;
-                        rectb.MouseLeftButtonDown += rect_MouseLeftButtonDown;
-                        rectb.MouseLeftButtonUp += rect_MouseLeftButtonUp;
-                        rectb.MouseEnter += rect_MouseEnter;
-                        rectb.MouseLeave += rect_MouseLeave;
-                        rectb.Name = ASHARPKEY2;
-                        rectb.Tag = octaves;
-
-                        Grid.SetRow(rectb, 0);
-                        Grid.SetColumn(rectb, gridCol);
-                        grd.Children.Add(rectb);
-                        mBlackRects.Add(rectb);
-
-                    } //   else if (i == 6)
-                    gridCol++;
                 } //    for (int i = 0; i <= mColumns; i++)
             } //    for (int x = 0; x < mNumOctaves; x++)
 
@@ -652,7 +609,24 @@ namespace PianoUserControl
 
         }
 
-        
+        /// <summary>
+        /// get  white rectangle(key) by name and octave
+        /// </summary>
+        /// <param name="name"></param>
+        /// <param name="octave"></param>
+        /// <returns></returns>
+        private Rectangle getWhiteKeyByName(string name, int octave)
+        {
+            foreach (Rectangle r1 in mRects)
+            {
+                if (r1.Name == name && (int)r1.Tag == octave)
+                {
+                    return r1;
+                }
+            }
+            return null;
+        }
+
         /// <summary>
         /// Check if a rectangle is Black key
         /// </summary>
@@ -672,7 +646,25 @@ namespace PianoUserControl
         }
 
         /// <summary>
-        /// get name of black rectangle(key) by name and octave
+        /// Check if a rectangle is Ivory key
+        /// </summary>
+        /// <param name="r"></param>
+        /// <returns></returns>
+        private bool isIvoryRect(Rectangle r)
+        {
+            bool retVal = false;
+            mIvoryRects.ForEach((elem) =>
+            {
+                if (elem == r)
+                {
+                    retVal = true;
+                }
+            });
+            return retVal;
+        }
+
+        /// <summary>
+        /// get  black rectangle(key) by name and octave
         /// </summary>
         /// <param name="name"></param>
         /// <param name="octave"></param>
@@ -688,27 +680,131 @@ namespace PianoUserControl
             }
             return null;
         }
-      
+
+        /// <summary>
+        /// get ivory rectangle(key) by name and octave
+        /// </summary>
+        /// <param name="name"></param>
+        /// <param name="octave"></param>
+        /// <returns></returns>
+        private Rectangle getIvoryKeyByName(string name, int octave)
+        {
+            foreach (Rectangle r1 in mIvoryRects)
+            {
+                if (r1.Name == name && (int)r1.Tag == octave)
+                {
+                    return r1;
+                }
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// get parent of ivory rectangle
+        /// </summary>
+        /// <param name="name"></param>
+        /// <param name="octave"></param>
+        /// <returns></returns>
+        private Rectangle getIvoryKeyParent(string name, int octave)
+        {
+            Rectangle r = null;
+
+            switch (name) {
+                case CSHARPKEY1A:
+                    r = getBlackKeyByName(CSHARPKEY1, octave);
+                    break;
+                case DSHARPKEY1A:
+                    r = getBlackKeyByName(DSHARPKEY1, octave);
+                    break;
+                case FSHARPKEY1A:
+                    r = getBlackKeyByName(FSHARPKEY1, octave);
+                    break;
+                case GSHARPKEY1A:
+                    r = getBlackKeyByName(GSHARPKEY1, octave);
+                    break;
+                case ASHARPKEY1A:
+                    r = getBlackKeyByName(ASHARPKEY1, octave);
+                    break;
+            }
+            return r;
+        }
+
+
+        private LinearGradientBrush createGradientForIvoryKey(bool highlightFlag=false)
+        {
+            Color startColor = Color.FromRgb(0, 0, 0);
+            Color stopColor = Colors.DarkGray;
+            if (highlightFlag)
+            {
+                startColor = Colors.DarkGray;
+                stopColor = Color.FromRgb(0, 0, 0);
+            }
+            Point startPoint = new Point(0, 0);
+            Point endPoint = new Point(1,1);
+            GradientStop gradient1 = new GradientStop(startColor, 0.0);
+            GradientStop gradient2 = new GradientStop(stopColor, 1.0);
+            LinearGradientBrush brush = new LinearGradientBrush();
+            brush.GradientStops.Add(gradient1); brush.GradientStops.Add(gradient2);
+            brush.StartPoint = startPoint; brush.EndPoint = endPoint;
+
+            return brush;
+        }
+
 
         /// <summary>
         /// Force the redraw of the keys when the container resizes
         /// </summary>
         public void resizeUI()
         {
+            Debug.WriteLine("resizeUI() start");
             if (!mLoaded)
                 return;
-            grd.Width = this.ActualWidth - 30;
-            grd.Height = this.ActualHeight - 40;
+            canvas.Width = this.ActualWidth - 30;
+            canvas.Height = this.ActualHeight - 40;
 
             Rectangle rect = mRects[0];
-            mBlackHeight = this.ActualHeight * (BLACK_KEY_HEIGHT_PERCENT / 100);
-            mBlackWidth = rect.ActualWidth * (BLACK_KEY_WIDTH_PERCENT / 100);
+            mWhiteHeight = canvas.Height * (WHITE_KEY_HEIGHT_PERCENT / 100);
+            mWhiteWidth = canvas.Width * (WHITE_KEY_WIDTH_PERCENT / 100);
+
+            mBlackHeight = canvas.Height * (BLACK_KEY_HEIGHT_PERCENT / 100);
+            mBlackWidth = canvas.Width * (BLACK_KEY_WIDTH_PERCENT / 100);
+
+            mIvoryHeight = canvas.ActualHeight * (IVORY_KEY_HEIGHT_PERCENT / 100);
+            mIvoryWidth = canvas.ActualWidth * (IVORY_KEY_WIDTH_PERCENT / 100);
+
+
+            //adjust for number of octave
+            mWhiteWidth = (mWhiteWidth / (mStopOctave - mStartOctave + 1));
+            mBlackWidth = (mBlackWidth / (mStopOctave - mStartOctave + 1));
+            mIvoryWidth = (mIvoryWidth / (mStopOctave - mStartOctave + 1));
+
+
+            double currWhiteKeyPos = 0;
+            mRects.ForEach((elem) =>
+            {
+                elem.Width = mWhiteWidth;
+                elem.Height = mWhiteHeight;
+                Canvas.SetTop(elem, KEY_TOP);
+                Canvas.SetLeft(elem, currWhiteKeyPos);
+                currWhiteKeyPos += WHITE_KEY_HORIZ_SPACING + mWhiteWidth;
+                Debug.WriteLine("white rect=" + elem.Name +", tag=" + Convert.ToString(elem.Tag));
+            });
 
             mBlackRects.ForEach((elem) =>
             {
                 elem.Width = mBlackWidth;
                 elem.Height = mBlackHeight;
+                positionBlackKeys(elem.Name, elem.Tag, elem);
             });
+
+            mIvoryRects.ForEach((elem) =>
+            {
+                elem.Width = mIvoryWidth;
+                elem.Height = mIvoryHeight;
+                positionIvoryKeys(elem.Name, elem.Tag, elem, getIvoryKeyParent(elem.Name, Convert.ToInt16(elem.Tag)));
+            });
+            Debug.WriteLine("resizeUI() end");
+
         }
 
         /// <summary>
@@ -716,41 +812,20 @@ namespace PianoUserControl
         /// </summary>
         /// <param name="rect"></param>
         /// <param name="isBlack"></param>
-        public void highlightKey(Rectangle rect, bool isBlack)
+        /// <param name="isIvory"></param>
+        public void highlightKey(Rectangle rect, bool isBlack, bool isIvory)
         {
-            if (!isBlack)
-                rect.Fill = new SolidColorBrush(Colors.Yellow);
+            if (!isBlack && !isIvory)
+                rect.Fill = new SolidColorBrush(Color.FromRgb(243,243,243));
             else
             {
-                rect.Fill = new SolidColorBrush(Colors.DarkGray);
-                Rectangle rectPair = null;
-                if (rect.Name == CSHARPKEY1)
-                    rectPair = getBlackKeyByName(CSHARPKEY2, (int)rect.Tag);
-                else if (rect.Name == CSHARPKEY2)
-                    rectPair = getBlackKeyByName(CSHARPKEY1, (int)rect.Tag);
-
-                if (rect.Name == DSHARPKEY1)
-                    rectPair = getBlackKeyByName(DSHARPKEY2, (int)rect.Tag);
-                else if (rect.Name == DSHARPKEY2)
-                    rectPair = getBlackKeyByName(DSHARPKEY1, (int)rect.Tag);
-
-                if (rect.Name == FSHARPKEY1)
-                    rectPair = getBlackKeyByName(FSHARPKEY2, (int)rect.Tag);
-                else if (rect.Name == FSHARPKEY2)
-                    rectPair = getBlackKeyByName(FSHARPKEY1, (int)rect.Tag);
-
-                if (rect.Name == GSHARPKEY1)
-                    rectPair = getBlackKeyByName(GSHARPKEY2, (int)rect.Tag);
-                else if (rect.Name == GSHARPKEY2)
-                    rectPair = getBlackKeyByName(GSHARPKEY1, (int)rect.Tag);
-
-                if (rect.Name == ASHARPKEY1)
-                    rectPair = getBlackKeyByName(ASHARPKEY2, (int)rect.Tag);
-                else if (rect.Name == ASHARPKEY2)
-                    rectPair = getBlackKeyByName(ASHARPKEY1, (int)rect.Tag);
-
-                if (rectPair != null)
-                    rectPair.Fill = new SolidColorBrush(Colors.DarkGray);
+                if (isBlack)
+                {
+                    rect.Fill = new SolidColorBrush(Colors.DarkGray);
+                } else if (isIvory)
+                {
+                    rect.Fill = createGradientForIvoryKey(true);
+                }
             }
         }
 
@@ -759,42 +834,22 @@ namespace PianoUserControl
         /// </summary>
         /// <param name="rect"></param>
         /// <param name="isBlack"></param>
-        public void unHighlightKey(Rectangle rect, bool isBlack)
+        /// <param name="isIvory"></param>
+        public void unHighlightKey(Rectangle rect, bool isBlack, bool isIvory)
         {
-            if (!isBlack)
+            if (!isBlack && !isIvory)
                 rect.Fill = new SolidColorBrush(Colors.Ivory);
             else
             {
-                rect.Fill = new SolidColorBrush(Colors.Black);
+                if (isBlack)
+                {
+                    rect.Fill = new SolidColorBrush(Colors.Black);
+                }
+                else if (isIvory)
+                {
+                    rect.Fill = createGradientForIvoryKey(false);
+                }
 
-                Rectangle rectPair = null;
-                if (rect.Name == CSHARPKEY1)
-                    rectPair = getBlackKeyByName(CSHARPKEY2, (int)rect.Tag);
-                else if (rect.Name == CSHARPKEY2)
-                    rectPair = getBlackKeyByName(CSHARPKEY1, (int)rect.Tag);
-
-                if (rect.Name == DSHARPKEY1)
-                    rectPair = getBlackKeyByName(DSHARPKEY2, (int)rect.Tag);
-                else if (rect.Name == DSHARPKEY2)
-                    rectPair = getBlackKeyByName(DSHARPKEY1, (int)rect.Tag);
-
-                if (rect.Name == FSHARPKEY1)
-                    rectPair = getBlackKeyByName(FSHARPKEY2, (int)rect.Tag);
-                else if (rect.Name == FSHARPKEY2)
-                    rectPair = getBlackKeyByName(FSHARPKEY1, (int)rect.Tag);
-
-                if (rect.Name == GSHARPKEY1)
-                    rectPair = getBlackKeyByName(GSHARPKEY2, (int)rect.Tag);
-                else if (rect.Name == GSHARPKEY2)
-                    rectPair = getBlackKeyByName(GSHARPKEY1, (int)rect.Tag);
-
-                if (rect.Name == ASHARPKEY1)
-                    rectPair = getBlackKeyByName(ASHARPKEY2, (int)rect.Tag);
-                else if (rect.Name == ASHARPKEY2)
-                    rectPair = getBlackKeyByName(ASHARPKEY1, (int)rect.Tag);
-
-                if (rectPair != null)
-                    rectPair.Fill = new SolidColorBrush(Colors.Black);
             }
         }
 
@@ -806,8 +861,9 @@ namespace PianoUserControl
         private void evtLeftButtonDown(Rectangle r)
         {
             Console.WriteLine("left button down");
-            highlightKey(r, isBlackRect(r));
+            highlightKey(r, isBlackRect(r), isIvoryRect(r));
             playNote(setNoteAsPerOctave(noteNameToSound(r.Name), (int)r.Tag));
+
         }
 
         /// <summary>
@@ -817,7 +873,7 @@ namespace PianoUserControl
         private void evtLeftButtonUp(Rectangle r)
         {
             Console.WriteLine("left button up");
-            unHighlightKey(r, isBlackRect(r));
+            unHighlightKey(r, isBlackRect(r), isIvoryRect(r));
             stopNote(setNoteAsPerOctave(noteNameToSound(r.Name), (int)r.Tag));
         }
 
@@ -831,7 +887,7 @@ namespace PianoUserControl
             Console.WriteLine("mouse leave");
             if (e.LeftButton == MouseButtonState.Pressed)
             {
-                unHighlightKey(r, isBlackRect(r));
+                unHighlightKey(r, isBlackRect(r), isIvoryRect(r));
                 stopNote(setNoteAsPerOctave(noteNameToSound(r.Name), (int)r.Tag));
             }
         }
@@ -846,7 +902,7 @@ namespace PianoUserControl
             Console.WriteLine("mouse enter");
             if (e.LeftButton == MouseButtonState.Pressed)
             {
-                highlightKey(r, isBlackRect(r));
+                highlightKey(r, isBlackRect(r), isIvoryRect(r));
                 playNote(setNoteAsPerOctave(noteNameToSound(r.Name), (int)r.Tag));
             }
 
@@ -895,7 +951,6 @@ namespace PianoUserControl
 
         private void UserControl_Loaded(object sender, RoutedEventArgs e)
         {
-            listDevices();
             setNotes();
            
         }
@@ -903,6 +958,11 @@ namespace PianoUserControl
         private void UserControl_SizeChanged(object sender, SizeChangedEventArgs e)
         {
             resizeUI();
+        }
+
+        private void grdLoaded(object sender, RoutedEventArgs e)
+        {
+
         }
     }
 }

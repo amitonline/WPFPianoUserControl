@@ -6,18 +6,28 @@
         xmlns:app="clr-namespace:PianoUserControl;assembly=PianoUserControl"
         xmlns:local="clr-namespace:PianoTest"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800" Loaded="Window_Loaded">
+        Title="MainWindow" Height="450" Width="880" Loaded="Window_Loaded">
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="*"></RowDefinition>
-            <RowDefinition Height="8*"></RowDefinition>
+            <RowDefinition Height="6*"></RowDefinition>
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*"></ColumnDefinition>
         </Grid.ColumnDefinitions>
 
-        <UniformGrid Grid.Row="0" Grid.Column="0" HorizontalAlignment="Left" VerticalAlignment="Center" Rows="1">
-            <Label Grid.Column="0" Content="Start Octave" Margin="0,0,5,5"></Label>
+        <Grid Grid.Row="0" Grid.Column="0" HorizontalAlignment="Left" VerticalAlignment="Center">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"></ColumnDefinition>
+                <ColumnDefinition Width="*"></ColumnDefinition>
+                <ColumnDefinition Width="*"></ColumnDefinition>
+                <ColumnDefinition Width="*"></ColumnDefinition>
+                <ColumnDefinition Width="*"></ColumnDefinition>
+                <ColumnDefinition Width="2*"></ColumnDefinition>
+                <ColumnDefinition Width="*"></ColumnDefinition>
+                <ColumnDefinition Width="2*"></ColumnDefinition>
+            </Grid.ColumnDefinitions>
+            <Label Grid.Column="0" Content="From Octave" Margin="0,0,5,5"></Label>
             <ComboBox Name="cboStart"    Grid.Column="1" Margin="0,0,5,5" SelectionChanged="cboStart_SelectionChanged">
                 <ComboBoxItem Tag="1">1</ComboBoxItem>
                 <ComboBoxItem Tag="2">2</ComboBoxItem>
@@ -27,7 +37,7 @@
                 <ComboBoxItem Tag="6">6</ComboBoxItem>
                 <ComboBoxItem Tag="7">7</ComboBoxItem>
             </ComboBox>
-            <Label Grid.Column="2" Content="Ending Octave" Margin="0,0,5,5"></Label>
+            <Label Grid.Column="2" Content="Till Octave" Margin="0,0,5,5"></Label>
             <ComboBox Name="cboStop"   Grid.Column="3" Margin="0,0,5,5" SelectionChanged="cboStop_SelectionChanged">
                 <ComboBoxItem Tag="1">1</ComboBoxItem>
                 <ComboBoxItem Tag="2">2</ComboBoxItem>
@@ -37,8 +47,14 @@
                 <ComboBoxItem Tag="6">6</ComboBoxItem>
                 <ComboBoxItem Tag="7">7</ComboBoxItem>
             </ComboBox>
-        </UniformGrid>
+            <Label Grid.Column="4" Grid.Row="0"  Content="MIDI Out" Margin="31,0,0,5"  HorizontalAlignment="Left" ></Label>
+            <ComboBox Name="cboMIDIOut"   Grid.Column="5" Margin="0,0,5,5" SelectionChanged="cboMIDIOut_SelectionChanged">
+            </ComboBox>
+            <Label Name="lblInstrument" Grid.Row="0" Grid.Column="6" Margin="0,0,5,5" Content="Instrument"></Label>
+            <ComboBox Name="cboInstrument" Grid.Row="0"  Grid.Column="7" Margin="0,0,5,5" SelectionChanged="cboInstrument_SelectionChanged" >
+            </ComboBox>
+        </Grid>
         <app:UserControl1 Name="synth" Grid.Row="1" Grid.Column="0"></app:UserControl1>
-       
+
     </Grid>
 </Window>
