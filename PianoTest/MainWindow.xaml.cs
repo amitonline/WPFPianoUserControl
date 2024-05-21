@@ -151,7 +151,9 @@ namespace PianoTest
         {
             if (!mIsLoaded)
                 return;
-
+            int test = Convert.ToInt16(cboInstrument.SelectedValue);
+            if (test == 0)
+                return;
             synth.setMIDIInstrument(Convert.ToInt16(cboInstrument.SelectedValue)-1);        }
     }
 
