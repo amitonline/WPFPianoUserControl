@@ -26,6 +26,8 @@
                 <ColumnDefinition Width="2*"></ColumnDefinition>
                 <ColumnDefinition Width="*"></ColumnDefinition>
                 <ColumnDefinition Width="2*"></ColumnDefinition>
+                <ColumnDefinition Width="2*"></ColumnDefinition>
+                <ColumnDefinition Width="2*"></ColumnDefinition>
             </Grid.ColumnDefinitions>
             <Label Grid.Column="0" Content="From Octave" Margin="0,0,5,5"></Label>
             <ComboBox Name="cboStart"    Grid.Column="1" Margin="0,0,5,5" SelectionChanged="cboStart_SelectionChanged">
@@ -53,8 +55,11 @@
             <Label Name="lblInstrument" Grid.Row="0" Grid.Column="6" Margin="0,0,5,5" Content="Instrument"></Label>
             <ComboBox Name="cboInstrument" Grid.Row="0"  Grid.Column="7" Margin="0,0,5,5" SelectionChanged="cboInstrument_SelectionChanged" >
             </ComboBox>
+            <Label Grid.Column="8" Grid.Row="0"  Content="MIDI In" Margin="31,0,0,5"  HorizontalAlignment="Left" ></Label>
+            <ComboBox Name="cboMIDIIn"   Grid.Column="9" Margin="0,0,5,5" SelectionChanged="cboMIDIIn_SelectionChanged">
+            </ComboBox>
         </Grid>
-        <app:UserControl1 Name="synth" Grid.Row="1" Grid.Column="0"></app:UserControl1>
+        <app:UserControl1 Name="synth" Grid.Row="1" Grid.Column="0" Padding="4,0,0,0"></app:UserControl1>
 
     </Grid>
 </Window>

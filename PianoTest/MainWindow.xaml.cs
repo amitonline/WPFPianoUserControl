@@ -38,6 +38,7 @@ namespace PianoTest
             cboStop.Text = "4";
             mIsLoaded = true;
             listMIDIOutDevices();
+            listMIDIInDevices();
             initSynth();
         }
 
@@ -47,7 +48,7 @@ namespace PianoTest
             if (mIsLoaded)
             {
                 deviceName = cboMIDIOut.SelectedValue.ToString();
-                synth.setMIDIOutputDevice(getDeviceByName(deviceName));
+                synth.setMIDIOutputDevice(getOutputDeviceByName(deviceName));
                 fillInstruments();
                 synth.setMIDIInstrument((int) UserControl1.INSTRUMENTS.ELECTRIC_PIANO2);
             }
@@ -122,6 +123,23 @@ namespace PianoTest
 
         private void cboMIDIOut_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
+            if (mIsLoaded)
+            {
+                string deviceName = cboMIDIOut.SelectedValue.ToString();
+                synth.setMIDIOutputDevice(getOutputDeviceByName(deviceName));
+            }
+        }
+
+        private void cboMIDIIn_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (mIsLoaded)
+            {
+                string deviceName = cboMIDIIn.SelectedValue.ToString();
+                if (deviceName == "None")
+                    synth.setMIDIInputDevice(null);
+                else
+                    synth.setMIDIInputDevice(getInputDeviceByName(deviceName));
+            }
         }
 
         private void listMIDIOutDevices()
@@ -134,12 +152,37 @@ namespace PianoTest
             cboMIDIOut.SelectedIndex = 0;
         }
 
-        private OutputDevice getDeviceByName(string name)
+        private void listMIDIInDevices()
+        {
+            cboMIDIIn.Items.Clear();
+            cboMIDIIn.Items.Add("None");
+            foreach (var inputDevice in Melanchall.DryWetMidi.Multimedia.InputDevice.GetAll())
+            {
+                cboMIDIIn.Items.Add(inputDevice.Name);
+            }
+            cboMIDIIn.SelectedIndex = 0;
+        }
+
+        private OutputDevice getOutputDeviceByName(string name)
         {
             OutputDevice retVal = null;
             foreach (var outputDevice in OutputDevice.GetAll())
             {
                 if (outputDevice.Name == name) {
+                    retVal = outputDevice;
+                    break;
+                }
+            }
+            return retVal;
+        }
+
+        private Melanchall.DryWetMidi.Multimedia.InputDevice getInputDeviceByName(string name)
+        {
+            Melanchall.DryWetMidi.Multimedia.InputDevice retVal = null;
+            foreach (var outputDevice in Melanchall.DryWetMidi.Multimedia.InputDevice.GetAll())
+            {
+                if (outputDevice.Name == name)
+                {
                     retVal = outputDevice;
                     break;
                 }

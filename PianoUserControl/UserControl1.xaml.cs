@@ -30,6 +30,7 @@ namespace PianoUserControl
     public partial class UserControl1 : UserControl
     {
         OutputDevice midiOUTDevice = null;
+        Melanchall.DryWetMidi.Multimedia.InputDevice midiINDevice = null;
         
         //note frequencies
         private int mOctave = 4;    // default octave (octaves can be from 1 to 7)
@@ -254,6 +255,18 @@ namespace PianoUserControl
            
         }
 
+        public void setMIDIInputDevice(Melanchall.DryWetMidi.Multimedia.InputDevice dev)
+        {
+            if (midiINDevice != null)
+                midiINDevice.Dispose();
+            if (dev != null)
+            {
+                midiINDevice = dev;
+                midiINDevice.EventReceived += onMIDIEventReceived;
+                midiINDevice.StartEventsListening();
+            }
+        }
+
         /// <summary>
         /// Do a program change event 
         /// </summary>
@@ -271,12 +284,13 @@ namespace PianoUserControl
         /// Send midi command to play a note frequency for a fixed duration
         /// </summary>
         /// <param name="note"></param>
-        void playNote(int note)
+        /// <param name="velocity">default 127 if none passed</param>
+        void playNote(int note, int velocity=127)
         {
             if (midiOUTDevice == null)
                 return;
 
-            NoteOnEvent evt = new NoteOnEvent((SevenBitNumber) note,(SevenBitNumber) 127);
+            NoteOnEvent evt = new NoteOnEvent((SevenBitNumber) note,(SevenBitNumber) velocity);
             midiOUTDevice.SendEvent(evt);
             Debug.WriteLine("play note" + note);
         }
@@ -330,6 +344,26 @@ namespace PianoUserControl
                 retVal = ASHARPNOTE;
 
             return retVal;
+        }
+
+        /// <summary>
+        /// Get MIDI events from MIDI keyboard
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void onMIDIEventReceived(object sender, MidiEventReceivedEventArgs e)
+        {
+            var midiDevice = (MidiDevice)sender;
+            Debug.WriteLine($"Event received from '{midiDevice.Name}' at {DateTime.Now}: {e.Event}");
+            if (e.Event.EventType == MidiEventType.NoteOn)
+            {
+                NoteOnEvent evt = (NoteOnEvent)e.Event;
+                playNote(evt.NoteNumber, evt.Velocity);
+            } else if (e.Event.EventType == MidiEventType.NoteOff) {
+                NoteOffEvent evt = (NoteOffEvent)e.Event;
+                stopNote(evt.NoteNumber);
+            }
+
         }
 
         #endregion ****************************************************************************************
