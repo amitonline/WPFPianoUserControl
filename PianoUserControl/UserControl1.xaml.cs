@@ -21,6 +21,7 @@ using Melanchall.DryWetMidi.Interaction;
 using Melanchall.DryWetMidi.Core;
 using Melanchall.DryWetMidi.Common;
 using Melanchall.DryWetMidi.MusicTheory;
+using System.Xml.Linq;
 
 namespace PianoUserControl
 {
@@ -347,6 +348,85 @@ namespace PianoUserControl
         }
 
         /// <summary>
+        /// Map note sound values to note names
+        /// </summary>
+        /// <param name="sound">sound note frequency</param>
+        /// <returns></returns>
+        string soundToNoteName(int sound)
+        {
+            string retVal = "";
+
+            if (sound == CNOTE)
+                retVal = CKEY;
+            else if (sound == DNOTE)
+                retVal = DKEY;
+            else if (sound == ENOTE)
+                retVal = EKEY;
+            else if (sound == FNOTE)
+                retVal = FKEY;
+            else if (sound == GNOTE)
+                retVal = GKEY;
+            else if (sound == ANOTE)
+                retVal = AKEY;
+            else if (sound == BNOTE)
+                retVal = BKEY;
+
+            else if (sound == CSHARPNOTE)
+                retVal = CSHARPKEY1;
+            else if (sound == DSHARPNOTE)
+                retVal = DSHARPKEY1;
+            else if (sound == FSHARPNOTE)
+                retVal = FSHARPKEY1;
+            else if (sound == GSHARPNOTE)
+                retVal = GSHARPKEY1;
+            else if (sound == ASHARPNOTE)
+                retVal = ASHARPKEY1;
+
+
+            return retVal;
+        }
+
+        /// <summary>
+        /// Map drywetmidi notenames to note names
+        /// </summary>
+        /// <param name="sound">sound note frequency</param>
+        /// <returns></returns>
+        string midiNoteNameToNoteName(string sound)
+        {
+            string retVal = "";
+
+            if (sound == "C")
+                retVal = CKEY;
+            else if (sound == "D")
+                retVal = DKEY;
+            else if (sound == "E")
+                retVal = EKEY;
+            else if (sound == "F")
+                retVal = FKEY;
+            else if (sound == "G")
+                retVal = GKEY;
+            else if (sound == "A")
+                retVal = AKEY;
+            else if (sound == "B")
+                retVal = BKEY;
+
+            else if (sound == "CSharp")
+                retVal = CSHARPKEY1A;
+            else if (sound == "DSharp")
+                retVal = DSHARPKEY1A;
+            else if (sound == "FSharp")
+                retVal = FSHARPKEY1A;
+            else if (sound == "GSharp")
+                retVal = GSHARPKEY1A;
+            else if (sound == "ASharp")
+                retVal = ASHARPKEY1A;
+
+
+            return retVal;
+        }
+
+
+        /// <summary>
         /// Get MIDI events from MIDI keyboard
         /// </summary>
         /// <param name="sender"></param>
@@ -355,13 +435,52 @@ namespace PianoUserControl
         {
             var midiDevice = (MidiDevice)sender;
             Debug.WriteLine($"Event received from '{midiDevice.Name}' at {DateTime.Now}: {e.Event}");
+
+            int octave = 0; int adjustedNote = 0; string midiNoteName = ""; string noteName = "";
+
+
             if (e.Event.EventType == MidiEventType.NoteOn)
             {
+                //get note and octave info
                 NoteOnEvent evt = (NoteOnEvent)e.Event;
-                playNote(evt.NoteNumber, evt.Velocity);
+                octave = (evt.NoteNumber / 12) - 1;
+                adjustedNote = setNoteAsPerOctave(evt.NoteNumber, octave);
+                midiNoteName = NoteEventUtilities.GetNoteName(evt).ToString();
+                noteName = midiNoteNameToNoteName(midiNoteName);
+
+                //press rectangle . if its not visible nothing happens but sound plays
+                Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    Rectangle rectKey = null;
+                    if (noteName.IndexOf("sharp") > -1)
+                        rectKey = getIvoryKeyByName(noteName, octave);
+                    else
+                        rectKey = getWhiteKeyByName(noteName, octave);
+                    if (rectKey != null)
+                        evtLeftButtonDown(rectKey, evt.Velocity);
+
+                }));
+
             } else if (e.Event.EventType == MidiEventType.NoteOff) {
+                //get note and octave info
                 NoteOffEvent evt = (NoteOffEvent)e.Event;
-                stopNote(evt.NoteNumber);
+                octave = (evt.NoteNumber / 12) - 1;
+                adjustedNote = setNoteAsPerOctave(evt.NoteNumber, octave);
+                midiNoteName = NoteEventUtilities.GetNoteName(evt).ToString();
+                noteName = midiNoteNameToNoteName(midiNoteName);
+
+                //unpress rectangle . if its not visible nothing happens 
+                Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    Rectangle rectKey = null;
+                    if (noteName.IndexOf("sharp") > -1)
+                        rectKey = getIvoryKeyByName(noteName, octave);
+                    else
+                        rectKey = getWhiteKeyByName(noteName, octave);
+                    if (rectKey != null)
+                        evtLeftButtonUp(rectKey);
+
+                }));
             }
 
         }
@@ -892,11 +1011,12 @@ namespace PianoUserControl
         /// Handle left button clicked event for a rectangle
         /// </summary>
         /// <param name="r"></param>
-        private void evtLeftButtonDown(Rectangle r)
+        /// <param name="velocity">default 127</param>
+        private void evtLeftButtonDown(Rectangle r, int velocity=127)
         {
             Console.WriteLine("left button down");
             highlightKey(r, isBlackRect(r), isIvoryRect(r));
-            playNote(setNoteAsPerOctave(noteNameToSound(r.Name), (int)r.Tag));
+            playNote(setNoteAsPerOctave(noteNameToSound(r.Name), (int)r.Tag), velocity);
 
         }
 
