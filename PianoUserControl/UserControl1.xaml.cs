@@ -969,7 +969,7 @@ namespace PianoUserControl
         public void highlightKey(Rectangle rect, bool isBlack, bool isIvory)
         {
             if (!isBlack && !isIvory)
-                rect.Fill = new SolidColorBrush(Color.FromRgb(243,243,243));
+                rect.Fill = new SolidColorBrush(Color.FromRgb(210,203,203));
             else
             {
                 if (isBlack)
